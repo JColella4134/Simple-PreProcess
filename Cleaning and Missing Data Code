@@ -1,22 +1,4 @@
-A simple data cleaning / missing value analysis for multiple datasets gathered from the World Bank.  Each dataset file essentially pertains to a separate variable in the final dataset.  
-
-Scripts are coded with R programming language.
-
-VARIABLE EXPLANATIONS:
-ages - PERCENT OF POPULATION BETWEEN THE AGES 15-64
-HospitalBeds - 
-OutOfPocket - 
-Refugee - 
-DeathRate - 
-LifeExpectancy - 
-PerCapita - 
-TaxRevenue - 
-Electricity - 
-Military - 
-Private - 
-
 # DATA MANIPULATION / CLEANING PACKAGES 
-
 > library(tidyverse)
 -- Attaching packages ---------------------------------------------------------------- tidyverse 1.2.1 --
 v ggplot2 2.2.1     v purrr   0.2.4
@@ -329,5 +311,151 @@ LifeExpectancy.csv   21   21   17   21   20   17
 +                        "LifeExpectancy.csv",  "OutOfPocket.csv", 
 +                        "PerCapita.csv", "Private.csv")
 
+# ONLY SELECT COUNTRY NAME AND MEAN VARIABLES FOR THESE DATAFRAMES 
+# WE ONLY WANT INCREASE AND DECREASE VARIABLES FOR PUBLIC AND TOTAL HEALTHCARE SPENDING
+> dataframes <- lapply(dataframes, function(x) x[ , c(1,2)])
+> list2env(dataframes, .GlobalEnv)
+<environment: R_GlobalEnv>
 
+# CREATES NAME VECTOR FOR EACH COLUMN VARIABLE IN NEW DATAFRAME 
+> names <- c("Country", "Ages", "Death Rate","Electricity", 
++            "Life Expectancy", "Out of Pocket", " Per Capita", 
++            "Private", "Public", "Increase or Decrease Public",  "Total", 
++            "Increase or Decrease Total")
 
+# JOINS SEPARATE DATAFRAMES TOGETHER BY COUNTRY  
+> final <- inner_join(ages.csv, DeathRate.csv, by="Country")
+> final <- inner_join(final, electricity.csv, by="Country")
+> final <- inner_join(final, LifeExpectancy.csv, by="Country")
+> final <- inner_join(final, OutOfPocket.csv, by="Country")
+> final <- inner_join(final, PerCapita.csv, by="Country")
+> final <- inner_join(final, Private.csv, by="Country")
+> final <- inner_join(final, Public.csv, by="Country")
+> final <- inner_join(final, Total.csv, by="Country")
+
+# NAME EACH COLUMN, ONLY KEEP ROWS WITH VALUES FOR MEAN 
+> names(final) <- names
+
+# MANIPULATE AND RESTRUCTURE THE DATFRAME WITH ROUNDED VALUES  
+# ROUND VALUES FOR ALL COLUMNS EXCEPT COUNTRY 
+> final1 <- round(final[ , 2:12], 2)
+
+# ADD ROUNDED DATAFRAME BACK TO ORIGINAL  
+> final <- cbind(final[1], final1)
+
+# REMOVE ROWS THAT AREN'T COUNTRIES  
+> final <- final[-c(6,7,33,35,48,60:64,67,72:73,94,97,101:104,106,109,
++                   127,133:135,138,139,141,152,155,160,169,180,182,190,
++                   195:196,202,213,215,216,228:229,234,236,238:239,247,
++                   257), ]
+
+# CURRENT DATAFRAME 
+> head(final[ , 1:6])
+      Country  Ages Death Rate Electricity Life Expectancy Out of Pocket
+1       Aruba 69.34       7.81       93.31           74.76           NaN
+2 Afghanistan 50.44       8.54       47.91           60.61         77.18
+3      Angola 50.36      11.31       35.79           56.79         26.81
+4     Albania 66.74       6.65      100.00           76.49         51.54
+5     Andorra   NaN       3.27      100.00             NaN         18.97
+8   Argentina 63.47       7.66       98.38           75.33         26.48
+
+# FURTHER MISSING DATA EXAMINATION  
+> final <- mutate(final, total_missing = (rowSums(is.na(final[, c(2:9,10)]))))
+> final <- mutate(final, percent_missing = total_missing/8)
+> head(final[ , 10:14])
+  Increase or Decrease Public Total Increase or Decrease Total total_missing percent_missing
+1                          NA   NaN                         NA             5           0.625
+2                        4.80  8.24                      -1.02             0           0.000
+3                        3.47  3.87                      -0.08             0           0.000
+4                        3.49  5.85                       0.55             0           0.000
+5                        0.00  7.07                       0.13             2           0.250
+6                       -8.14  6.22                      -1.76             0           0.000
+
+# REMOVE COUNTRIES THAT HAVE GREATER THAN 2 MISSING VALUES (25%+ missing data)
+> final <- final[final$total_missing <3,]
+
+# RENUMBER ROWS  
+> row.names(final) <- 1:nrow(final)
+
+# FINALIZE DATAFRAME FOR EXPORT & SUBSTITUTE MEDIAN FOR MISSING VALUES 
+> final <- final[-c(6:8,13:14)]
+> median_sub <- function(x){
++   x[is.nan(x)] = median(x, na.rm = TRUE)
++   return(x)
++ }
+> final <- lapply(final, median_sub)
+> final <- as.data.frame(final)
+> 
+> lapply(final, function(x) sum(is.na(x)))
+$Country
+[1] 0
+
+$Ages
+[1] 0
+
+$Death.Rate
+[1] 0
+
+$Electricity
+[1] 0
+
+$Life.Expectancy
+[1] 0
+
+$Public
+[1] 0
+
+$Increase.or.Decrease.Public
+[1] 1
+
+$Total
+[1] 0
+
+$Increase.or.Decrease.Total
+[1] 1
+
+> final <- final[complete.cases(final),]
+> lapply(final, function(x) sum(is.na(x)))
+$Country
+[1] 0
+
+$Ages
+[1] 0
+
+$Death.Rate
+[1] 0
+
+$Electricity
+[1] 0
+
+$Life.Expectancy
+[1] 0
+
+$Public
+[1] 0
+
+$Increase.or.Decrease.Public
+[1] 0
+
+$Total
+[1] 0
+
+$Increase.or.Decrease.Total
+[1] 0
+
+# FINAL DATASET - READY FOR ANALYSIS 
+> head(final)
+      Country  Ages Death.Rate Electricity Life.Expectancy Public Increase.or.Decrease.Public
+1 Afghanistan 50.44       8.54       47.91           60.61  22.48                        4.80
+2      Angola 50.36      11.31       35.79           56.79  62.71                        3.47
+3     Albania 66.74       6.65      100.00           76.49  46.67                        3.49
+4     Andorra 64.64       3.27      100.00           72.21  73.87                        0.00
+5   Argentina 63.47       7.66       98.38           75.33  58.38                       -8.14
+6     Armenia 68.50       9.55       99.78           73.02  42.55                        0.84
+  Total Increase.or.Decrease.Total
+1  8.24                      -1.02
+2  3.87                      -0.08
+3  5.85                       0.55
+4  7.07                       0.13
+5  6.22                      -1.76
+6  4.52                      -0.08
