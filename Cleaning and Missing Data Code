@@ -1,0 +1,333 @@
+A simple data cleaning / missing value analysis for multiple datasets gathered from the World Bank.  Each dataset file essentially pertains to a separate variable in the final dataset.  
+
+Scripts are coded with R programming language.
+
+VARIABLE EXPLANATIONS:
+ages - PERCENT OF POPULATION BETWEEN THE AGES 15-64
+HospitalBeds - 
+OutOfPocket - 
+Refugee - 
+DeathRate - 
+LifeExpectancy - 
+PerCapita - 
+TaxRevenue - 
+Electricity - 
+Military - 
+Private - 
+
+# DATA MANIPULATION / CLEANING PACKAGES 
+
+> library(tidyverse)
+-- Attaching packages ---------------------------------------------------------------- tidyverse 1.2.1 --
+v ggplot2 2.2.1     v purrr   0.2.4
+v tibble  1.4.2     v dplyr   0.7.4
+v tidyr   0.7.2     v stringr 1.2.0
+v readr   1.1.1     v forcats 0.2.0
+-- Conflicts ------------------------------------------------------------------- tidyverse_conflicts() --
+x dplyr::filter() masks stats::filter()
+x dplyr::lag()    masks stats::lag()
+Warning messages:
+1: package ‘tidyverse’ was built under R version 3.4.3 
+2: package ‘ggplot2’ was built under R version 3.4.2 
+3: package ‘tibble’ was built under R version 3.4.3 
+4: package ‘tidyr’ was built under R version 3.4.2 
+5: package ‘readr’ was built under R version 3.4.2 
+6: package ‘purrr’ was built under R version 3.4.3 
+7: package ‘dplyr’ was built under R version 3.4.2 
+8: package ‘forcats’ was built under R version 3.4.2 
+> library(broom)
+Warning message:
+package ‘broom’ was built under R version 3.4.3 
+
+# STORE ALL DATASETS IN ONE FOLDER, SET WD TO THAT FOLDER
+setwd("C:\\Users\\.............")
+
+# LIST.FILES CREATES CHARACTER VECTOR OF ALL FILES 
+> filenames <- list.files(pattern="*.csv", full.names = FALSE)
+> filenames
+ [1] "ages.csv"           "DeathRate.csv"      "electricity.csv"    "External.csv"      
+ [5] "HospitalBeds.csv"   "LifeExpectancy.csv" "military.csv"       "NetMigration.csv"  
+ [9] "OutOfPocket.csv"    "PerCapita.csv"      "Private.csv"        "Public.csv"        
+[13] "Refugee.csv"        "TaxRevenue.csv"     "Total.csv"  
+
+# CREATE EMPTY LIST TO STORE DATAFRAMES I.E. LIST OF DATAFRAMES
+> df.list <- list()
+
+# STORES EACH DATAFRAME IN THE FOLDER INTO THE LIST  
+> for (i in seq_along(filenames)){
++   df.list[[i]] <- read.csv(filenames[i], header=TRUE, check.names = FALSE)
++   }
+
+# NAMES EACH DATAFRAME IN LIST BY ITS FILENAME 
+> names(df.list) <- filenames
+
+# NAMES COLUMN 1 IN EACH DATAFRAME AS "Country.Name"
+> df.list <- lapply(df.list, function(x){
++   names(x)[1] = "Country.Name"
++   return(x)
++ })
+
+# SAMPLE DATAFRAME FROM LIST OF DATAFRAMES
+> smple_df <- as.data.frame(df.list$ages.csv)
+> head(smple_df[ , 1:9])
+  Country.Name     1995     1996     1997     1998     1999     2000     2001     2002
+1        Aruba 69.66785 69.45072 69.32628 69.27942 69.26128 69.24042 69.32334 69.42164
+2  Afghanistan 49.87279 49.67835 49.49435 49.35954 49.26694 49.18201 49.27862 49.46725
+3       Angola 49.62882 49.62345 49.68599 49.80376 49.95974 50.13073 50.12334 50.16381
+4      Albania 60.89983 61.28979 61.63607 61.95304 62.28264 62.66220 63.06444 63.51387
+5      Andorra       NA       NA       NA       NA       NA       NA       NA       NA
+6   Arab World 55.21554 55.65386 56.12042 56.60488 57.10043 57.60548 58.14097 58.67650
+> tail(smple_df[ , 1:9])
+    Country.Name     1995     1996     1997     1998     1999     2000     2001     2002
+259        Samoa 55.13496 55.19637 55.20215 55.14594 55.00964 54.80442 55.09894 55.26384
+260       Kosovo       NA       NA       NA       NA       NA       NA       NA       NA
+261  Yemen, Rep. 46.76008 46.88672 47.17880 47.59183 48.06642 48.57118 49.16141 49.71173
+262 South Africa 60.05246 60.48163 60.92725 61.39081 61.87237 62.36642 62.66098 62.98859
+263       Zambia 50.72117 50.72461 50.75102 50.79594 50.86231 50.94937 50.76178 50.62476
+264     Zimbabwe 52.21158 52.48333 52.83422 53.24338 53.67650 54.11137 54.34011 54.55211
+
+# ADD MEAN VALUE FOR EACH COUNTRY TO EACH DATAFRAME IN LIST
+> df.list <- lapply(df.list, function(x) 
++   mutate(x, means = rowMeans(x[ ,11:21], na.rm=TRUE)))
+
+# EXAMINE MISSING DATA WITHIN EACH SEPARATE DATAFRAME IN LIST & DETERMINE THE EXTENT BY COLUMN
+> missing_vars <- lapply(df.list, function(x) colSums(is.na(x)))
+> missing_vars
+$ages.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           24           24           24           24           24           24 
+        2001         2002         2003         2004         2005         2006         2007 
+          24           24           24           24           24           24           24 
+        2008         2009         2010         2011         2012         2013         2014 
+          24           24           24           24           25           25           25 
+       means 
+          24 
+
+$DeathRate.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           17           14           17           18           18           18 
+        2001         2002         2003         2004         2005         2006         2007 
+          17           15           18           15           14           12           12 
+        2008         2009         2010         2011         2012         2013         2014 
+          14           13           12           13           13           14           13 
+       means 
+           8 
+
+$electricity.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           15           15           15           14           13           11 
+        2001         2002         2003         2004         2005         2006         2007 
+          10            8            7            5            5            5            4 
+        2008         2009         2010         2011         2012         2013         2014 
+           4            4            4            4            4            4            4 
+       means 
+           4 
+
+$External.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           64           63           63           60           61           60 
+        2001         2002         2003         2004         2005         2006         2007 
+          60           61           52           51           52           52           57 
+        2008         2009         2010         2011         2012         2013         2014 
+          71           70           69           75           76           82           94 
+       means 
+          47 
+
+$HospitalBeds.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0          180          147          182          184          190          179 
+        2001         2002         2003         2004         2005         2006         2007 
+         175          170          170          198          121          130          172 
+        2008         2009         2010         2011         2012         2013         2014 
+         177          129          147          147          194          262          263 
+       means 
+          43 
+
+$LifeExpectancy.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           21           21           17           21           20           17 
+        2001         2002         2003         2004         2005         2006         2007 
+          19           15           18           18           17           17           16 
+        2008         2009         2010         2011         2012         2013         2014 
+          16           16           18           17           18           19           19 
+       means 
+          15 
+
+$military.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           83           80           80           85           83           80 
+        2001         2002         2003         2004         2005         2006         2007 
+          79           74           69           68           67           72           74 
+        2008         2009         2010         2011         2012         2013         2014 
+          67           71           73           76           72           71           72 
+       means 
+          59 
+
+$NetMigration.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0          264          264           24          264          264          264 
+        2001         2002         2003         2004         2005         2006         2007 
+         264           24          264          264          264          264           24 
+        2008         2009         2010         2011         2012         2013         2014 
+         264          264          264          264           24          264          264 
+       means 
+          24 
+
+$OutOfPocket.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           34           34           34           33           33           31 
+        2001         2002         2003         2004         2005         2006         2007 
+          31           30           29           29           29           29           29 
+        2008         2009         2010         2011         2012         2013         2014 
+          29           29           29           29           28           28           28 
+       means 
+          28 
+
+$PerCapita.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           34           34           34           33           33           31 
+        2001         2002         2003         2004         2005         2006         2007 
+          31           30           29           29           29           29           29 
+        2008         2009         2010         2011         2012         2013         2014 
+          29           29           29           29           28           28           28 
+       means 
+          28 
+
+$Private.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           35           35           35           34           34           31 
+        2001         2002         2003         2004         2005         2006         2007 
+          31           30           29           29           29           29           29 
+        2008         2009         2010         2011         2012         2013         2014 
+          29           29           29           29           28           28           28 
+       means 
+          28 
+
+$Public.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           34           34           34           33           33           31 
+        2001         2002         2003         2004         2005         2006         2007 
+          31           30           29           29           29           29           29 
+        2008         2009         2010         2011         2012         2013         2014 
+          29           29           29           29           28           28           28 
+       means 
+          28 
+
+$Refugee.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           75           75           71           72           68           69 
+        2001         2002         2003         2004         2005         2006         2007 
+          68           72           72           71           70           64           62 
+        2008         2009         2010         2011         2012         2013         2014 
+          61           56           54           48           50           48           47 
+       means 
+          36 
+
+$TaxRevenue.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0          149          151          144          144          139          148 
+        2001         2002         2003         2004         2005         2006         2007 
+         139          132          122          118          107          103          101 
+        2008         2009         2010         2011         2012         2013         2014 
+          95           90           87           90          101          113          131 
+       means 
+          73 
+
+$Total.csv
+Country.Name         1995         1996         1997         1998         1999         2000 
+           0           35           35           35           34           34           31 
+        2001         2002         2003         2004         2005         2006         2007 
+          31           30           29           29           29           29           29 
+        2008         2009         2010         2011         2012         2013         2014 
+          29           29           29           29           28           28           28 
+       means 
+          28 
+
+# CREATES DATAFRAME OF MISSING VALUES FOR EACH DATAFRAME (VARIABLE)
+> missing_df <- data.frame(missing_vars)
+
+# REMOVES COUNTRY NAME AND MEAN ROWS  
+> missing_df <- missing_df[-c(1,22),]
+
+# ORIGINAL MISSING DATA DATAFRAME 
+> head(missing_df[ , 1:6])
+     ages.csv DeathRate.csv electricity.csv External.csv HospitalBeds.csv LifeExpectancy.csv
+1995       24            17              15           64              180                 21
+1996       24            14              15           63              147                 21
+1997       24            17              15           63              182                 17
+1998       24            18              14           60              184                 21
+1999       24            18              13           61              190                 20
+2000       24            18              11           60              179                 17
+
+# TRANSPOSE SO VARIABLES ARE THE ROWS  
+> missing_df <- as.data.frame(t(missing_df))
+> head(missing_df[ , 1:6])
+                   1995 1996 1997 1998 1999 2000
+ages.csv             24   24   24   24   24   24
+DeathRate.csv        17   14   17   18   18   18
+electricity.csv      15   15   15   14   13   11
+External.csv         64   63   63   60   61   60
+HospitalBeds.csv    180  147  182  184  190  179
+LifeExpectancy.csv   21   21   17   21   20   17
+
+# TOTALS THE AMOUNT OF MISSING VALUES PER ROW / PER DATAFRAME
+> missing_df <- mutate(missing_df, total_missing = (rowSums(missing_df)))
+
+# PERCENT MISSING 
+> missing_df <- mutate(missing_df, percent_missing = total_missing /5280)
+> missing_df$percent_missing <- missing_df$percent_missing*100
+> missing_df <- round(missing_df, 2)
+> missing_df$percent_missing <- paste(missing_df$percent_missing, "%")
+> head(missing_df[ , 17:22])
+  2011 2012 2013 2014 total_missing percent_missing
+1   24   25   25   25           483          9.15 %
+2   13   13   14   13           297          5.62 %
+3    4    4    4    4           155          2.94 %
+4   75   76   82   94          1293         24.49 %
+5  147  194  262  263          3517         66.61 %
+6   17   18   19   19           360          6.82 %
+
+# CREATE COLUMN NUMBERING EACH FOR JUST FOR REFERENCE
+> missing_df <- mutate(missing_df, row_num = 1:15)
+
+# EDIT COLUMN NAMES FOR EACH DATAFRAME 
+> colnames <- as.character(c("Country", 1995:2014, "mean"))
+> df.list <- lapply(df.list, setNames, colnames)
+
+# EDIT FINAL DATAFRAMES  
+# REMOVE EXTERNAL, HOSPITAL BEDS, MILITARY, NET MIGRATION, REFUGEE, TAX REVENUE BECAUSE OF EXCESSIVE MISSING VALUES
+> df.list <- df.list[-c(4:5,7:8,13:14)]
+
+# ADD INCREASE/DECREASE COLUMN TO ALL DATAFRAMES
+> df.list <- lapply(df.list, function(x)
++   mutate(x, increase_decrease = x[, 21] - x[ , 17]))
+
+# REMOVE ALL COLUMNS EXCEPT COUNTRY, MEAN, INCREASE/DECREASE 
+> df.list <- lapply(df.list, select, c(1, 22, 23))
+
+# READS EACH DATAFRAME IN LIST INTO SEPARATE VARIABLE IN ENVIRONMENT 
+> list2env(df.list, .GlobalEnv)
+<environment: R_GlobalEnv>
+
+# EACH DATAFRAME FROM THE LIST OF DATAFRAMES IS NOW ITS OWN SEPARATE DATASET AS SUCH 
+> head(ages.csv)
+      Country     mean increase_decrease
+1       Aruba 69.34371         0.3270891
+2 Afghanistan 50.43591         2.3544970
+3      Angola 50.35680         0.1354209
+4     Albania 66.74301         2.2424180
+5     Andorra      NaN                NA
+6  Arab World 61.55466         0.1982781
+
+# REMOVE INCREASE/DECREASE FROM ALL EXCEPT PUBLIC AND TOTAL SINCE WE WANT TO UTILIZE THOSE VALUES AS ANOTHER VARIABLE
+> dataframes <- list(ages.csv, DeathRate.csv, electricity.csv, 
++                    LifeExpectancy.csv, OutOfPocket.csv, PerCapita.csv, 
++                    Private.csv)
+
+# NAME EACH DATAFRAME IN NEW LIST OF DATAFRAMES FOR REFERENCE
+> names(dataframes) <- c("ages.csv", "DeathRate.csv", "electricity.csv", 
++                        "LifeExpectancy.csv",  "OutOfPocket.csv", 
++                        "PerCapita.csv", "Private.csv")
+
+
+
